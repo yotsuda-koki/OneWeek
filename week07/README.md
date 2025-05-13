@@ -27,10 +27,10 @@ Pygame による視覚表示と Tkinter ベースのGUI入力により、簡単�
 pip install pygame
 ```
 
-3. `drop.py` を実行：
+3. `fallSim.py` を実行：
 
 ```
-python drop.py
+python fallSim.py
 ```
 
 4. GUIが起動したら、素材と条件を選び、「シミュレーション開始」ボタンを押す

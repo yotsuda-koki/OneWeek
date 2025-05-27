@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>グラフ作図</title>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2025.3.1/core.css" />
+    <script defer type="module" src="https://pyscript.net/releases/2025.3.1/core.js"></script>
+
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 2rem;
+        }
+        input {
+            font-size: 1.2rem;
+            width: 300px;
+            padding: 0.3rem;
+        }
+        button {
+            font-size: 1.1rem;
+            margin-left: 1rem;
+        }
+        #output {
+            margin-top: 2rem;
+            font-size: 1.2rem;
+            line-height: 2;
+        }
+        #formula {
+            margin-top: 2rem;
+        }
+        .py-error {
+            display: none !important;
+        }
+        #loading {
+            display: block;
+            font-weight: bold;
+            color: gray;
+        }
+        #graph {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>グラフ作図</h1>
+
+    <div id="loading">読み込み中</div>
+    <div id="graph">
+        $f(x) = $ <input id="input" value="sin(x)" />
+        <button id="btn-origin">元の関数</button>
+        <button id="btn-diff">微分</button>
+        <button id="btn-integ">積分</button>
+        <div id="formula"></div>
+        <div id="plot"></div>
+    </div>
+
+    <py-config>
+        packages = ["matplotlib", "numpy", "sympy"]
+    </py-config>
+
+    <script type="py">
+        import traceback, io
+        import numpy as np
+        import matplotlib.pyplot as plt
+        from sympy import symbols, sympify, lambdify, latex, diff, integrate
+        from js import document, window
+        from pyodide.ffi import create_proxy
+        from pyscript import display
+
+        document.getElementById("loading").style.display = "none"
+        document.getElementById("graph").style.display = "block"
+
+        x = symbols('x')
+
+        def draw_plot(mode):
+            try:
+                expr_str = document.getElementById("input").value
+                formula_div = document.getElementById("formula")
+                plot_div = document.getElementById("plot")
+                expr = sympify(expr_str)
+                suffix = ""
+
+                if mode == "origin":
+                    prefix = "f(x)"
+                elif mode == "diff":
+                    expr = diff(expr, x)
+                    prefix = "f'(x)"
+                elif mode == "integ":
+                    expr = integrate(expr, x)
+                    prefix = "∫f(x)dx"
+                    suffix = " + C"
+
+                fx = lambdify(x, expr, modules=["numpy", "sympy"])
+                xs = np.linspace(-10, 10, 400)
+                ys = fx(xs)
+
+                plt.clf()
+                plt.plot(xs, ys, label=f'${prefix} = {latex(expr)}$')
+                plt.legend()
+                plt.grid(True)
+                display(plt, target="plot", append=False)
+
+                latex_str = latex(expr)
+                formula_div.innerHTML = f'\\({prefix} = {latex_str} {suffix} \\)'
+                window.MathJax.typesetPromise()
+
+            except Exception as e:
+                buf = io.StringIO()
+                traceback.print_exc(file=buf)
+                formula_div.innerText = f"数式エラー: {e}"
+
+        document.getElementById("btn-origin").addEventListener(
+            "click", create_proxy(lambda _: draw_plot("origin"))
+        )
+        document.getElementById("btn-diff").addEventListener(
+            "click", create_proxy(lambda _: draw_plot("diff"))
+        )
+        document.getElementById("btn-integ").addEventListener(
+            "click", create_proxy(lambda _: draw_plot("integ"))
+        )
+    </script>
+</body>
+</html>
